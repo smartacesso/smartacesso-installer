@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>SmartAcesso — Como gerar o instalador</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 16mm 20mm 16mm;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Calibri, Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.45;
+      color: #1f2937;
+      margin: 0;
+    }
+    h1 {
+      font-size: 22pt;
+      color: #4c1d95;
+      margin: 0 0 6px;
+    }
+    h2 {
+      font-size: 14pt;
+      color: #5b21b6;
+      border-bottom: 2px solid #ddd6fe;
+      padding-bottom: 4px;
+      margin: 22px 0 10px;
+      page-break-after: avoid;
+    }
+    h3 {
+      font-size: 12pt;
+      color: #6d28d9;
+      margin: 16px 0 6px;
+      page-break-after: avoid;
+    }
+    p { margin: 0 0 8px; }
+    .subtitle { color: #6b7280; font-size: 12pt; margin-bottom: 18px; }
+    .meta {
+      background: #f5f3ff;
+      border-left: 4px solid #7c3aed;
+      padding: 10px 14px;
+      margin-bottom: 18px;
+      font-size: 10pt;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 14px;
+      font-size: 10pt;
+      page-break-inside: avoid;
+    }
+    th, td {
+      border: 1px solid #e5e7eb;
+      padding: 7px 9px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #5b21b6; color: #fff; font-weight: 600; }
+    tr:nth-child(even) td { background: #faf5ff; }
+    pre, code {
+      font-family: Consolas, "Courier New", monospace;
+    }
+    pre {
+      background: #111827;
+      color: #e5e7eb;
+      padding: 12px 14px;
+      border-radius: 6px;
+      font-size: 9pt;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-break: break-word;
+      page-break-inside: avoid;
+    }
+    code {
+      background: #ede9fe;
+      color: #5b21b6;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 9.5pt;
+    }
+    pre code {
+      background: none;
+      color: inherit;
+      padding: 0;
+      font-size: inherit;
+    }
+    ul, ol { margin: 4px 0 12px; padding-left: 22px; }
+    li { margin-bottom: 4px; }
+    .note {
+      background: #fffbeb;
+      border-left: 4px solid #d97706;
+      padding: 10px 14px;
+      margin: 12px 0;
+      font-size: 10pt;
+      page-break-inside: avoid;
+    }
+    .ok {
+      background: #ecfdf5;
+      border-left: 4px solid #059669;
+      padding: 10px 14px;
+      margin: 12px 0;
+      font-size: 10pt;
+      page-break-inside: avoid;
+    }
+    .tree { font-size: 9.5pt; }
+    footer {
+      margin-top: 28px;
+      padding-top: 8px;
+      border-top: 1px solid #e5e7eb;
+      color: #6b7280;
+      font-size: 9pt;
+    }
+  </style>
+</head>
+<body>
+  <h1>SmartAcesso — Gerar o instalador</h1>
+  <p class="subtitle">Como compilar as três peças e gerar o Setup.exe em qualquer máquina Windows</p>
+  <div class="meta">
+    <strong>Documento interno</strong> · SmartPonto<br>
+    Cobre o repositório <code>smartacesso-installer</code> e os três projetos irmãos
+    (núcleo Java, TopData e Desktop Electron).<br>
+    Atualização automática <strong>não</strong> faz parte desta etapa.
+  </div>
+
+  <h2>1. O que o instalador entrega</h2>
+  <p>
+    Um único <code>SmartAcesso-Setup-&lt;versão&gt;.exe</code> instala, com checkboxes,
+    as peças que aquela máquina precisa. O cliente <strong>não instala Java</strong>:
+    cada serviço já leva a JRE correspondente.
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>Componente</th>
+        <th>O que é</th>
+        <th>Java / runtime</th>
+        <th>Porta</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Núcleo</strong> (sempre)</td>
+        <td>Serviço Windows <code>SmartAcesso Core</code> — API local, sync, dispositivos</td>
+        <td>JRE 21 <strong>64-bit</strong> (jlink)</td>
+        <td>8090</td>
+      </tr>
+      <tr>
+        <td><strong>TopData</strong> (opcional)</td>
+        <td>Serviço Windows <code>SmartAcesso TopData</code> — catraca / JNI Nitgen</td>
+        <td>JRE 21 <strong>32-bit</strong> Liberica (jlink)</td>
+        <td>8080</td>
+      </tr>
+      <tr>
+        <td><strong>Desktop</strong> (opcional)</td>
+        <td>Aplicativo Electron <code>SmartAcesso.exe</code></td>
+        <td>Chromium embutido (não usa o Java da máquina)</td>
+        <td>—</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>Tipos prontos no wizard:</p>
+  <ul>
+    <li><strong>Completa</strong> — núcleo + TopData + desktop</li>
+    <li><strong>Operação</strong> — núcleo + desktop (estação sem catraca TopData)</li>
+    <li><strong>Catraca</strong> — núcleo + TopData (máquina de equipamento, sem UI)</li>
+    <li><strong>Personalizada</strong> — marca TopData e/ou desktop; o núcleo não pode ser desmarcado</li>
+  </ul>
+
+  <h3>Onde fica na máquina do cliente</h3>
+  <pre class="tree"><code>C:\Program Files\SmartAcesso\
+  core\          JAR + JRE 21 x64 + WinSW
+  topdata\       JAR + JRE 21 x86 + WinSW + lib nativa
+  desktop\       SmartAcesso.exe
+
+C:\ProgramData\SmartAcesso\
+  config\        application.properties (não é apagado na reinstalação)
+  data\          Derby
+  logs\</code></pre>
+  <div class="note">
+    O TopData precisa de JVM <strong>32-bit</strong> por causa das DLLs JNI (Nitgen / TopData).
+    Por isso a build usa Liberica JDK 21 x86, o mesmo tipo de Java usado no desenvolvimento.
+    O <code>pom.xml</code> do TopData pode continuar em Java 8 / Spring Boot 2.7:
+    bytecode 8 roda no JVM 21.
+  </div>
+
+  <h2>2. Layout dos repositórios (obrigatório)</h2>
+  <p>
+    Os quatro repositórios precisam ser <strong>irmãos</strong> (mesmo diretório pai).
+    O <code>build.ps1</code> localiza os outros três a partir da pasta do instalador.
+  </p>
+  <pre class="tree"><code>C:\build\                                  ← qualquer pasta
+  smartAcesso\
+  smartAcesso-topData\                     ← precisa incluir lib\ (Topdata.jar, EasyInner.dll, NBioBSPJNI.jar)
+  smartacesso-desktop-electron\
+  smartacesso-installer\                   ← rode o build daqui</code></pre>
+  <pre><code>cd C:\build
+git clone &lt;url-do-smartAcesso&gt;
+git clone &lt;url-do-smartAcesso-topData&gt;
+git clone &lt;url-do-electron&gt;
+git clone &lt;url-do-installer&gt;</code></pre>
+  <p>
+    Os nomes das pastas têm que ser exatamente esses. Se o TopData vier sem a pasta
+    <code>lib\</code>, o JAR não empacota as dependências de sistema.
+  </p>
+
+  <h2>3. Ferramentas na máquina de build</h2>
+  <p>Windows 10 ou 11 <strong>64-bit</strong>. Essa máquina só gera o Setup; não precisa ter o produto instalado.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Ferramenta</th>
+        <th>Para quê</th>
+        <th>Observação</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>JDK 21 64-bit</td>
+        <td>Compilar o núcleo e gerar a JRE x64</td>
+        <td>Oracle, Temurin, Microsoft, Liberica x64 — qualquer um com <code>jlink</code></td>
+      </tr>
+      <tr>
+        <td>Liberica JDK 21 32-bit</td>
+        <td>Compilar o TopData e gerar a JRE x86</td>
+        <td>BellSoft, pacote <em>Standard JDK</em>, Windows <strong>x86</strong>. Download: https://bell-sw.com/pages/downloads/</td>
+      </tr>
+      <tr>
+        <td>Node.js 20+</td>
+        <td>Empacotar o Electron</td>
+        <td><code>node</code> e <code>npm</code> no PATH</td>
+      </tr>
+      <tr>
+        <td>Git</td>
+        <td>Clone dos repositórios</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>Inno Setup 6</td>
+        <td>Compilar o .exe do wizard</td>
+        <td>O script tenta instalar via <code>winget</code> se não achar o ISCC</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="ok">
+    <strong>Maven não precisa estar instalado.</strong> Os projetos Java usam o wrapper
+    <code>mvnw.cmd</code>. Na primeira execução é obrigatório ter internet
+    (Maven Central, npm, GitHub para baixar o WinSW).
+  </div>
+
+  <h2>4. Gerar o Setup.exe</h2>
+  <p>PowerShell na pasta do instalador:</p>
+  <pre><code>cd C:\build\smartacesso-installer
+Set-ExecutionPolicy -Scope Process Bypass
+.\build.ps1 -Version 1.0.0</code></pre>
+  <p>
+    O script procura os dois JDKs sozinho em
+    <code>C:\Program Files\...</code> e <code>C:\Program Files (x86)\...</code>
+    e imprime os caminhos encontrados. Se estiverem em outro lugar:
+  </p>
+  <pre><code>$env:SMARTACESSO_JDK21     = "C:\caminho\jdk-21-x64"
+$env:SMARTACESSO_JDK21_X86 = "C:\caminho\LibericaJDK-21-x86"
+.\build.ps1 -Version 1.0.0</code></pre>
+  <p>Arquivo gerado:</p>
+  <pre><code>C:\build\smartacesso-installer\dist\SmartAcesso-Setup-1.0.0.exe</code></pre>
+  <p>Esse é o instalador que vai para o cliente. As JREs já vão dentro dele.</p>
+
+  <h3>O que o script faz, na ordem</h3>
+  <ol>
+    <li>Compila o núcleo (<code>smartacesso.jar</code>) com JDK 21 64-bit e gera a JRE x64 com <code>jlink</code>.</li>
+    <li>Compila o TopData (<code>topdata.jar</code>) com Liberica 21 32-bit e gera a JRE x86 com <code>jlink</code>.</li>
+    <li>Copia <code>lib\</code> do TopData para <code>native\</code> no staging (exige <code>EasyInner.dll</code>).</li>
+    <li>Empacota o Electron com <code>electron-builder --win --dir</code>.</li>
+    <li>Baixa o WinSW (wrapper de serviço Windows), se ainda não estiver em <code>tools\</code>.</li>
+    <li>Compila o Inno Setup e grava o <code>Setup.exe</code> em <code>dist\</code>.</li>
+  </ol>
+
+  <h3>Atalhos em rebuilds</h3>
+  <table>
+    <thead>
+      <tr><th>Comando</th><th>Quando usar</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>.\build.ps1</code></td>
+        <td>Build completo (Java + Electron + Inno)</td>
+      </tr>
+      <tr>
+        <td><code>.\build.ps1 -SkipJava</code></td>
+        <td>Só mudou o Desktop</td>
+      </tr>
+      <tr>
+        <td><code>.\build.ps1 -SkipJava -SkipElectron</code></td>
+        <td>Só recompilar o wizard Inno a partir do staging já existente</td>
+      </tr>
+      <tr>
+        <td><code>.\build.ps1 -Version 1.1.0</code></td>
+        <td>Grava o número da versão no nome do Setup e no wizard</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>5. Instalação no cliente</h2>
+  <p>Execute o Setup <strong>como administrador</strong> (já exige privilégio elevado).</p>
+  <ul>
+    <li>Wizard em português, escolha do tipo (completa / operação / catraca / personalizada).</li>
+    <li>Opcional: atalho na área de trabalho e iniciar o Desktop com o Windows.</li>
+    <li>Os serviços são instalados e iniciados ao final.</li>
+    <li>A desinstalação <strong>não apaga</strong> <code>C:\ProgramData\SmartAcesso\data</code> nem os <code>application.properties</code> locais (Derby e config da estação).
+    </li>
+  </ul>
+  <h3>Instalação silenciosa (TI)</h3>
+  <pre><code>SmartAcesso-Setup-1.0.0.exe /VERYSILENT /COMPONENTS="core,desktop"
+SmartAcesso-Setup-1.0.0.exe /VERYSILENT /COMPONENTS="core,topdata,desktop"</code></pre>
+
+  <h2>6. Como testar</h2>
+  <div class="note">
+    Não instale o Setup na mesma máquina em que os projetos sobem pelo IDE.
+    As portas 8090 e 8080 vão conflitar. Use uma VM limpa (sem Java instalado de propósito).
+  </div>
+  <ol>
+    <li>Instale o tipo <strong>Operação</strong>. Confira o serviço <em>SmartAcesso Core</em> e o atalho do Desktop.</li>
+    <li>Rode o Setup de novo, marque TopData, e confira o serviço <em>SmartAcesso TopData</em>.</li>
+    <li>Desinstale e confirme que <code>C:\ProgramData\SmartAcesso\data</code> permanece.</li>
+    <li>Logs dos serviços: <code>C:\ProgramData\SmartAcesso\logs\core</code> e <code>...\logs\topdata</code>.</li>
+  </ol>
+  <p>
+    Drivers USB de sistema (FTDI etc.) podem precisar do instalador do fabricante.
+    O Setup <strong>empacota</strong> as DLLs de runtime TopData/Nitgen de
+    <code>smartAcesso-topData\lib\</code> em <code>{app}\topdata\native</code>
+    (em especial <code>EasyInner.dll</code>). Sem elas o serviço TopData falha no start.
+  </p>
+
+  <h2>7. Problemas comuns na máquina de build</h2>
+  <table>
+    <thead>
+      <tr><th>Sintoma</th><th>Causa típica</th><th>O que fazer</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>JDK 21 64-bit não encontrado</td>
+        <td>Só existe Liberica 32-bit (JAVA_HOME x86)</td>
+        <td>Instalar um JDK 21 x64 em Program Files, ou definir <code>SMARTACESSO_JDK21</code></td>
+      </tr>
+      <tr>
+        <td>JDK 21 32-bit não encontrado</td>
+        <td>Liberica x86 não instalada</td>
+        <td>Instalar Liberica JDK 21 Windows x86, ou definir <code>SMARTACESSO_JDK21_X86</code></td>
+      </tr>
+      <tr>
+        <td>Maven falha no TopData por <code>systemPath</code></td>
+        <td>Falta <code>lib\Topdata.jar</code> ou <code>lib\EasyInner.dll</code></td>
+        <td>Garantir que o clone do TopData inclui a pasta <code>lib\</code> completa (ver <code>lib\README.md</code>)</td>
+      </tr>
+      <tr>
+        <td>electron-builder: ícone menor que 256×256</td>
+        <td>Usar o favicon 72×72</td>
+        <td>O projeto já usa <code>src/assets/images/logos/icon.png</code> (256×256)</td>
+      </tr>
+      <tr>
+        <td>Inno Setup não encontrado</td>
+        <td>winget indisponível / política</td>
+        <td>Instalar à mão em https://jrsoftware.org/isinfo.php e rerodar com <code>-SkipJava -SkipElectron</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>8. O que ainda não entra nesta etapa</h2>
+  <ul>
+    <li><strong>Atualização automática</strong> — combinado para depois. Enquanto isso, reinstalar o mesmo Setup atualiza os binários e preserva config/Derby.</li>
+    <li><strong>Assinatura Authenticode</strong> — sem certificado o SmartScreen do Windows avisa no cliente.</li>
+    <li><strong>Ícone definitivo</strong> — o <code>icon.png</code> 256×256 foi gerado a partir do favicon; pode ser trocado por um ícone de marca.</li>
+  </ul>
+
+  <footer>
+    SmartAcesso / SmartPonto · Geração do instalador desktop (núcleo, TopData e Electron) ·
+    Repositório <code>smartacesso-installer</code>
+  </footer>
+</body>
+</html>

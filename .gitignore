@@ -1,0 +1,7 @@
+staging/
+dist/
+tools/
+*.log
+.idea/
+.vscode/
+Thumbs.db
