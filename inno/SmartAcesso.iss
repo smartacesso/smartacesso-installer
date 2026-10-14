@@ -40,7 +40,7 @@ Name: "gate"; Description: "Catraca (nucleo + TopData)"
 Name: "custom"; Description: "Personalizada"; Flags: iscustom
 
 [Components]
-Name: "core"; Description: "Nucleo SmartAcesso (servico Windows, porta 8090)"; Types: full operator gate custom; Flags: fixed
+Name: "core"; Description: "Nucleo SmartAcesso (servico Windows, porta 8882)"; Types: full operator gate custom; Flags: fixed
 Name: "topdata"; Description: "Integracao TopData / catraca (servico Windows, porta 8080)"; Types: full gate
 Name: "desktop"; Description: "Aplicativo Desktop"; Types: full operator
 
