@@ -326,10 +326,12 @@ SmartAcesso-Setup-1.0.0.exe /VERYSILENT /COMPONENTS="core,topdata,desktop"</code
     <li>Logs dos serviços: <code>C:\ProgramData\SmartAcesso\logs\core</code> e <code>...\logs\topdata</code>.</li>
   </ol>
   <p>
-    Drivers USB de sistema (FTDI etc.) podem precisar do instalador do fabricante.
     O Setup <strong>empacota</strong> as DLLs de runtime TopData/Nitgen de
     <code>smartAcesso-topData\lib\</code> em <code>{app}\topdata\native</code>
     (em especial <code>EasyInner.dll</code>). Sem elas o serviço TopData falha no start.
+    Com o componente TopData marcado, o Setup também registra no Windows o driver USB do
+    leitor Nitgen Hamster DX (HFDU06): <code>FpUSB.inf</code> (FDU06) e <code>NGStar.inf</code> (FDU06M/06S),
+    em <code>{app}\drivers\nitgen\hfdu06</code>. A desinstalação do SmartAcesso não remove esse driver.
   </p>
 
   <h2>7. Problemas comuns na máquina de build</h2>

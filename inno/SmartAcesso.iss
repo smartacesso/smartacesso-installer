@@ -62,6 +62,7 @@ Source: "{#Staging}\config\core\*"; DestDir: "{commonappdata}\SmartAcesso\config
 
 Source: "{#Staging}\topdata\*"; DestDir: "{app}\topdata"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: topdata
 Source: "{#Staging}\config\topdata\*"; DestDir: "{commonappdata}\SmartAcesso\config\topdata"; Flags: onlyifdoesntexist uninsneveruninstall; Components: topdata
+Source: "..\resources\drivers\nitgen\hfdu06\*"; DestDir: "{app}\drivers\nitgen\hfdu06"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: topdata
 
 Source: "{#Staging}\desktop\*"; DestDir: "{app}\desktop"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: desktop
 
@@ -135,6 +136,45 @@ begin
   RunService(Exe, 'start');
 end;
 
+{ Registra o driver USB do Hamster DX (HFDU06). 0 = ok, 259 = sem aparelho plugado, 3010 = pede reboot. }
+function RegisterNitgenInf(const RelativeInf: String): Integer;
+var
+  ResultCode: Integer;
+  Inf: String;
+begin
+  Result := -1;
+  Inf := ExpandConstant('{app}\drivers\nitgen\hfdu06\' + RelativeInf);
+  if not FileExists(Inf) then
+  begin
+    Log('Driver Nitgen ausente: ' + Inf);
+    Exit;
+  end;
+  if not Exec(ExpandConstant('{sys}\pnputil.exe'), '/add-driver "' + Inf + '" /install',
+      ExtractFilePath(Inf), SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+  begin
+    Log('pnputil nao executou para ' + Inf);
+    Exit;
+  end;
+  Result := ResultCode;
+  Log('pnputil ' + RelativeInf + ' -> ' + IntToStr(ResultCode));
+end;
+
+procedure RegisterNitgenDrivers;
+var
+  Fdu06, Fdu06m: Integer;
+begin
+  Fdu06 := RegisterNitgenInf('fdu06\FpUSB.inf');
+  Fdu06m := RegisterNitgenInf('fdu06m\NGStar.inf');
+  if WizardSilent then
+    Exit;
+  if ((Fdu06 <> 0) and (Fdu06 <> 259) and (Fdu06 <> 3010))
+      or ((Fdu06m <> 0) and (Fdu06m <> 259) and (Fdu06m <> 3010)) then
+    SuppressibleMsgBox(
+      'Nao foi possivel registrar o driver do leitor Nitgen Hamster DX.' + #13#10 +
+      'O leitor USB pode nao aparecer ate o driver ser instalado manualmente.',
+      mbError, MB_OK, IDOK);
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then
@@ -151,6 +191,7 @@ begin
       ExpandServiceTemplate(
         ExpandConstant('{app}\topdata\SmartAcessoTopData.xml.tpl'),
         ExpandConstant('{app}\topdata\SmartAcessoTopData.xml'));
+      RegisterNitgenDrivers;
       InstallAndStartService(ExpandConstant('{app}\topdata\SmartAcessoTopData.exe'));
     end;
   end;
